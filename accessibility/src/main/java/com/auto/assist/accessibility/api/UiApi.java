@@ -1,5 +1,8 @@
 package com.auto.assist.accessibility.api;
 
+import android.content.Context;
+import android.content.Intent;
+import android.provider.Settings;
 import android.view.accessibility.AccessibilityNodeInfo;
 
 import androidx.annotation.WorkerThread;
@@ -12,7 +15,6 @@ import com.auto.assist.accessibility.selector.ClickTextNode;
 import com.auto.assist.accessibility.selector.ConditionNode;
 import com.auto.assist.accessibility.selector.NodeSelector;
 import com.auto.assist.accessibility.util.ApiUtil;
-import com.auto.assist.accessibility.util.Config;
 import com.auto.assist.accessibility.util.LogUtil;
 
 import java.util.ArrayList;
@@ -26,6 +28,14 @@ public class UiApi {
     private static final int WAIT_UI_APPEAR_MSEC = 500;  //控件默认的超时时间,毫秒
     private static final int CHECK_UI_SLEEP_GAP_MSEC = 200;  //控件默认的超时时间,毫秒
 
+    /**
+     * 前往开启辅助服务界面
+     */
+    public static void goAccessibilitySettings(Context context) {
+        Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        context.startActivity(intent);
+    }
 
     /**
      * 判断是否是当前页面
@@ -69,32 +79,6 @@ public class UiApi {
      */
     public static void back() {
         AcessibilityApi.performAction(AcessibilityApi.ActionType.BACK);
-    }
-
-    /**
-     * 回退到桌面
-     */
-    @WorkerThread
-    public static boolean backToDesk() {
-        int i = 10;
-        while (i > 0) {
-            AcessibilityApi.performAction(AcessibilityApi.ActionType.HOME);
-            String pke = AcessibilityApi.getEventPkg();
-            LogUtil.debug("正在执行回退桌面_当前包名:" + pke);
-            if ("".equals(pke)) {
-                LogUtil.debug("辅助服务异常");
-                return false;
-            }
-            for (String str : Config.DESKTOP_PKG) {
-                if (str.equals(pke)) {
-                    LogUtil.debug("已到桌面");
-                    return true;
-                }
-            }
-            ApiUtil.sleepTime(1000);
-            i--;
-        }
-        return false;
     }
 
     /**
@@ -176,7 +160,7 @@ public class UiApi {
             maxMills = WAIT_UI_APPEAR_MSEC;
         }
         while (true) {
-            mNode = AcessibilityApi.findViewByDes(desc);
+            mNode = AcessibilityApi.findViewByDesc(desc);
             if (isExists(mNode)) {
                 break;
             } else {

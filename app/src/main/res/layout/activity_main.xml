@@ -8,6 +8,6 @@
         android:id="@+id/test_btn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="前往移动网络页面"  />
+        android:text="测试"  />
 
 </LinearLayout>

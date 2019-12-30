@@ -1,5 +1,7 @@
 package com.auto.assist.accessibility.selector;
 
+import androidx.annotation.NonNull;
+
 import com.google.gson.Gson;
 
 import java.io.Serializable;
@@ -37,10 +39,12 @@ public class ConditionNode implements Serializable {
         this.desc = desc;
     }
 
+    @NonNull
     public String toJson() {
         return new Gson().toJson(this);
     }
 
+    @NonNull
     @Override
     public String toString() {
         return toJson();

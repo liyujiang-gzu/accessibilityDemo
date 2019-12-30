@@ -1,12 +1,10 @@
 package com.auto.assist.accessibility.api;
 
 import android.accessibilityservice.AccessibilityService;
-import android.accessibilityservice.GestureDescription;
 import android.annotation.TargetApi;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
-import android.graphics.Path;
 import android.graphics.Rect;
 import android.os.Build;
 import android.os.Bundle;
@@ -15,7 +13,6 @@ import android.view.accessibility.AccessibilityNodeInfo;
 
 
 import androidx.annotation.Nullable;
-import androidx.annotation.RequiresApi;
 
 import com.auto.assist.accessibility.util.LogUtil;
 
@@ -91,31 +88,6 @@ public class AcessibilityApi {
         Rect rect = new Rect();
         nodeInfo.getBoundsInScreen(rect);
         return rect;
-    }
-
-    @RequiresApi(api = Build.VERSION_CODES.N)
-    public static void performGestureClick(float x, float y) {
-        GestureDescription.Builder builder = new GestureDescription.Builder();
-        Path path = new Path();
-        path.moveTo(x, y);
-        LogUtil.debug("gesture click at point: x=" + x + ", y=" + y);
-        GestureDescription gestureDescription = builder
-                .addStroke(new GestureDescription.StrokeDescription(path, 100, 50))
-                .build();
-        AcessibilityApi.getAccessibilityService().dispatchGesture(gestureDescription,
-                new AccessibilityService.GestureResultCallback() {
-                    @Override
-                    public void onCompleted(GestureDescription gestureDescription) {
-                        super.onCompleted(gestureDescription);
-                        LogUtil.debug("gestureDescription onCompleted");
-                    }
-
-                    @Override
-                    public void onCancelled(GestureDescription gestureDescription) {
-                        super.onCancelled(gestureDescription);
-                        LogUtil.debug("gestureDescription onCancelled");
-                    }
-                }, null);
     }
 
     /**
@@ -308,10 +280,9 @@ public class AcessibilityApi {
         List<AccessibilityNodeInfo> nodeInfoList = accessibilityNodeInfo.findAccessibilityNodeInfosByText(text);
         if (nodeInfoList != null && !nodeInfoList.isEmpty()) {
             for (AccessibilityNodeInfo nodeInfo : nodeInfoList) {
-                if (nodeInfo != null && nodeInfo.getText() != null && nodeInfo.getText().toString().equals(text)) {
+                LogUtil.debug("node info: " + nodeInfo);
+                if (nodeInfo != null && nodeInfo.getText() != null && nodeInfo.getText().toString().matches(text)) {
                     return nodeInfo;
-
-
                 }
             }
         }
@@ -334,6 +305,7 @@ public class AcessibilityApi {
         List<AccessibilityNodeInfo> nodeInfoList = accessibilityNodeInfo.findAccessibilityNodeInfosByViewId(id);
         if (nodeInfoList != null && !nodeInfoList.isEmpty()) {
             for (AccessibilityNodeInfo nodeInfo : nodeInfoList) {
+                LogUtil.debug("node info: " + nodeInfo);
                 if (nodeInfo != null) {
                     return nodeInfo;
                 }
@@ -345,19 +317,19 @@ public class AcessibilityApi {
     /**
      * 根据描述查找控件
      *
-     * @param des
+     * @param desc
      * @return
      */
-    public static AccessibilityNodeInfo findViewByDes(String des) {
-        if (des == null || "".equals(des)) {
+    public static AccessibilityNodeInfo findViewByDesc(String desc) {
+        if (desc == null || "".equals(desc)) {
             return null;
         }
         List<AccessibilityNodeInfo> lists = getAllNode(null, null);
-
-        for (AccessibilityNodeInfo node : lists) {
-            CharSequence desc = node.getContentDescription();
-            if (desc != null && des.equals(desc.toString())) {
-                return node;
+        for (AccessibilityNodeInfo nodeInfo : lists) {
+            LogUtil.debug("node info: " + nodeInfo);
+            CharSequence description = nodeInfo.getContentDescription();
+            if (description != null && description.toString().matches(desc)) {
+                return nodeInfo;
             }
         }
         return null;
@@ -375,11 +347,11 @@ public class AcessibilityApi {
             return null;
         }
         List<AccessibilityNodeInfo> lists = getAllNode(null, null);
-
-        for (AccessibilityNodeInfo node : lists) {
-            CharSequence desc = node.getClassName();
-            if (desc != null && cls.equals(desc.toString())) {
-                mlist.add(node);
+        for (AccessibilityNodeInfo nodeInfo : lists) {
+            LogUtil.debug("node info: " + nodeInfo);
+            CharSequence className = nodeInfo.getClassName();
+            if (className != null && className.toString().matches(cls)) {
+                mlist.add(nodeInfo);
             }
         }
         return mlist;
@@ -393,19 +365,14 @@ public class AcessibilityApi {
     public static AccessibilityNodeInfo getRootNodeInfo() {
         AccessibilityEvent curEvent = mAccessibilityEvent;
         AccessibilityNodeInfo nodeInfo = null;
-
         if (Build.VERSION.SDK_INT >= 19) {
             // 建议使用getRootInActiveWindow，这样不依赖当前的事件类型
             if (mAccessibilityService != null) {
                 nodeInfo = mAccessibilityService.getRootInActiveWindow();
-
             }
-
         } else {
             nodeInfo = curEvent.getSource();
         }
-
-
         return nodeInfo;
     }
 
@@ -416,22 +383,18 @@ public class AcessibilityApi {
         AccessibilityNodeInfo nodeInfo = getRootNodeInfo();
         if (nodeInfo != null) {
             List<AccessibilityNodeInfo> list = nodeInfo.findAccessibilityNodeInfosByText(text);
-            if (list != null || list.size() > 0) {
+            if (list != null && list.size() > 0) {
                 return list;
-
             }
         }
         return null;
-
     }
-
 
     public static String getEventPkg() {
         if (mAccessibilityService != null) {
             AccessibilityNodeInfo node = getRootNodeInfo();
             if (node != null) {
                 return node.getPackageName() == null ? "" : node.getPackageName().toString();
-
             }
         }
         return "";
@@ -445,13 +408,11 @@ public class AcessibilityApi {
         AccessibilityNodeInfo nodeInfo = getRootNodeInfo();
         if (nodeInfo != null) {
             List<AccessibilityNodeInfo> list = nodeInfo.findAccessibilityNodeInfosByText(text);
-            if (list != null || list.size() > 0) {
+            if (list != null && list.size() > 0) {
                 return list.get(0);
-
             }
         }
         return null;
-
     }
 
 
@@ -468,33 +429,22 @@ public class AcessibilityApi {
         }
         if (node == null) {
             node = getRootNodeInfo();
-
         }
-
         if (node != null) {
             int childNum = node.getChildCount();
-
-
             if (childNum > 0) {
                 for (int i = 0; i < childNum; i++) {
                     AccessibilityNodeInfo nodeInfo = node.getChild(i);
                     if (nodeInfo != null) {
                         getAllNode(nodeInfo, lists);
                         lists.add(nodeInfo);
-
                     }
                 }
-
-
             } else {
-
                 return lists;
             }
         }
-
         return lists;
-
-
     }
 
     /**
@@ -503,20 +453,15 @@ public class AcessibilityApi {
     public static void closeKeyBoard() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             if (mAccessibilityService != null) {
-
                 AccessibilityService.SoftKeyboardController softKeyboardController = mAccessibilityService.getSoftKeyboardController();
                 int mode = softKeyboardController.getShowMode();
                 if (mode == AccessibilityService.SHOW_MODE_AUTO) {
                     //如果软键盘开启,就关闭软件拍
                     softKeyboardController.setShowMode(AccessibilityService.SHOW_MODE_HIDDEN);
-
                 }
-
-
             }
         }
     }
-
 
     /**
      * 获取节点所有包含的动作类型
@@ -524,13 +469,10 @@ public class AcessibilityApi {
      * @param node
      */
     public static void getNodeActions(AccessibilityNodeInfo node) {
-
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
             List<AccessibilityNodeInfo.AccessibilityAction> accessibilityActions = node.getActionList();
-
             for (AccessibilityNodeInfo.AccessibilityAction action : accessibilityActions) {
-
-                System.out.print(action.toString());
+                LogUtil.debug(action.toString());
             }
         }
     }

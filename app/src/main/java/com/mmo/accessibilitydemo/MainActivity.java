@@ -6,8 +6,10 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.auto.assist.accessibility.api.UiApi;
 import com.auto.assist.accessibility.util.ApiUtil;
-import com.mmo.accessibilitydemo.script.ToNetPageScript;
+
+import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -19,17 +21,17 @@ public class MainActivity extends AppCompatActivity {
         findViewById(R.id.test_btn).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (ApiUtil.isAccessibilityServiceOn(UiApplication.context, MainAccessService.class)) {
-                    new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            ToNetPageScript.doWork();
-
-                        }
-                    }).start();
-                } else {
-                    Toast.makeText(MainActivity.this, "请开启辅助功能", Toast.LENGTH_SHORT).show();
+                if (!ApiUtil.isAccessibilityServiceOn(UiApplication.context, MainAccessService.class)) {
+                    Toast.makeText(getApplicationContext(), "请开启辅助功能", Toast.LENGTH_SHORT).show();
+                    UiApi.goAccessibilitySettings(getApplicationContext());
+                    return;
                 }
+                Executors.newSingleThreadExecutor().submit(new Runnable() {
+                    @Override
+                    public void run() {
+                        TestAutoExecScript.doWork();
+                    }
+                });
             }
         });
     }

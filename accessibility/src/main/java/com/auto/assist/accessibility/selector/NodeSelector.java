@@ -1,5 +1,7 @@
 package com.auto.assist.accessibility.selector;
 
+import androidx.annotation.NonNull;
+
 import com.google.gson.Gson;
 
 public class NodeSelector {
@@ -48,6 +50,7 @@ public class NodeSelector {
         return new Gson().toJson(this);
     }
 
+    @NonNull
     @Override
     public String toString() {
         return "NodeSelector{" +

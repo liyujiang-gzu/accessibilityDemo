@@ -1,5 +1,7 @@
 package com.auto.assist.accessibility.selector;
 
+import androidx.annotation.NonNull;
+
 import com.google.gson.Gson;
 
 public class ActionSelector {
@@ -38,6 +40,7 @@ public class ActionSelector {
         return new Gson().toJson(this);
     }
 
+    @NonNull
     @Override
     public String toString() {
         return "ActionSelector{" +
