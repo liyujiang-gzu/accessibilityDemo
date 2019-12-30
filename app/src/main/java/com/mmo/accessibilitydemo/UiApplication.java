@@ -10,16 +10,14 @@ import android.content.Context;
  *     desc  : new class
  * </pre>
  */
-public class UiApplication extends Application
-{
-    public static Context context;
+public class UiApplication extends Application {
+    public static Application context;
 
     @Override
-    public void onCreate()
-    {
+    public void onCreate() {
         super.onCreate();
-        if(context==null){
-            context=this;
+        if (context == null) {
+            context = this;
         }
     }
 }

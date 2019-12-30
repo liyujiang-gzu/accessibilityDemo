@@ -4,8 +4,9 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.provider.Settings;
-import android.support.annotation.NonNull;
 import android.text.TextUtils;
+
+import androidx.annotation.NonNull;
 
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -13,8 +14,7 @@ import java.io.IOException;
 /**
  * api 内部需要用到的类
  */
-public class ApiUtil
-{
+public class ApiUtil {
 
     /**
      * 判断指定的应用的辅助功能是否开启,
@@ -27,25 +27,19 @@ public class ApiUtil
         int ok = 0;
         String serName = context.getPackageName() + "/" + cls.getCanonicalName();
 
-        try
-        {
+        try {
             ok = Settings.Secure.getInt(context.getApplicationContext().getContentResolver(), Settings.Secure.ACCESSIBILITY_ENABLED);
-        } catch (Settings.SettingNotFoundException e)
-        {
+        } catch (Settings.SettingNotFoundException e) {
         }
 
         TextUtils.SimpleStringSplitter ms = new TextUtils.SimpleStringSplitter(':');
-        if (ok == 1)
-        {
+        if (ok == 1) {
             String settingValue = Settings.Secure.getString(context.getApplicationContext().getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
-            if (settingValue != null)
-            {
+            if (settingValue != null) {
                 ms.setString(settingValue);
-                while (ms.hasNext())
-                {
+                while (ms.hasNext()) {
                     String accessibilityService = ms.next();
-                    if (accessibilityService.equalsIgnoreCase(serName))
-                    {
+                    if (accessibilityService.equalsIgnoreCase(serName)) {
                         return true;
                     }
 
@@ -80,8 +74,7 @@ public class ApiUtil
     /**
      * 通过命令关闭软键盘
      */
-    public static void closeKeyBorad() {
-
+    public static void closeKeyBoard() {
         String cmdStr = "input keyevent 111 ";
         execRootCmdSilent(cmdStr);
     }
@@ -89,24 +82,18 @@ public class ApiUtil
     /**
      * 全局滑动操作
      */
-    public static void perforGlobalSwipe( int x0, int y0, int x1, int y1) {
-
+    public static void performGlobalSwipe(int x0, int y0, int x1, int y1) {
         String cmd = "input touchscreen swipe " + x0 + " " + y0 + " " + x1 + " " + y1;
-
         execRootCmdSilent(cmd);
 
     }
 
-
     /**
      * 全局点击
      */
-    public static void perforGlobalClick( float x, float y) {
-
+    public static void performGlobalClick(float x, float y) {
         String cmd = "input tap " + x + " " + y;
-
         execRootCmdSilent(cmd);
-
     }
 
 
@@ -116,8 +103,7 @@ public class ApiUtil
     public static void execRootCmdSilent(String cmd) {
         DataOutputStream dos = null;
 
-        try
-        {
+        try {
             Process p = Runtime.getRuntime().exec("su");
             dos = new DataOutputStream(p.getOutputStream());
 
@@ -126,19 +112,14 @@ public class ApiUtil
             dos.writeBytes("exit\n");
             dos.flush();
             p.waitFor();
-        } catch (Exception e)
-        {
+        } catch (Exception e) {
             e.printStackTrace();
             System.out.print("手机未root");
-        } finally
-        {
-            if (dos != null)
-            {
-                try
-                {
+        } finally {
+            if (dos != null) {
+                try {
                     dos.close();
-                } catch (IOException e)
-                {
+                } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
@@ -147,11 +128,9 @@ public class ApiUtil
 
     public static void sleepTime(long t) {
 
-        try
-        {
+        try {
             Thread.sleep(t);
-        } catch (InterruptedException e)
-        {
+        } catch (InterruptedException e) {
             e.printStackTrace();
         }
 

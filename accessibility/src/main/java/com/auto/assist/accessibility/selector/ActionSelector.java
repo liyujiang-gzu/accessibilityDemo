@@ -2,17 +2,13 @@ package com.auto.assist.accessibility.selector;
 
 import com.google.gson.Gson;
 
-import java.util.HashMap;
-
-public class ActionSelector
-{
+public class ActionSelector {
 
     private NodeSelector page;
 
     private long maxWClickMSec = 0; //最大点击超时
 
-    private HashMap<String ,String> click;  //点击的内容
-
+    private ClickNode click;  //点击的内容
 
     public NodeSelector getPage() {
         return page;
@@ -30,12 +26,16 @@ public class ActionSelector
         this.maxWClickMSec = maxWClickMSec;
     }
 
-    public HashMap<String, String> getClick() {
+    public ClickNode getClick() {
         return click;
     }
 
-    public void setClick(HashMap<String, String> click) {
+    public void setClick(ClickNode click) {
         this.click = click;
+    }
+
+    public String toJson() {
+        return new Gson().toJson(this);
     }
 
     @Override
