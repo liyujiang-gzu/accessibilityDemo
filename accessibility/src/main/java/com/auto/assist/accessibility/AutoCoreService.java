@@ -31,7 +31,6 @@ public abstract class AutoCoreService extends AccessibilityService {
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
         LogUtil.debug("onAccessibilityEvent: " + AccessibilityEvent.eventTypeToString(event.getEventType()) + "," + event.getPackageName());
-        AcessibilityApi.setAccessibilityEvent(event);
         onAccessEvent(event);
     }
 

@@ -1,27 +1,28 @@
 package com.auto.assist.accessibility.api;
 
+import android.accessibilityservice.AccessibilityService;
+import android.accessibilityservice.GestureDescription;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.graphics.Path;
+import android.os.Build;
 import android.provider.Settings;
+import android.text.TextUtils;
 import android.view.accessibility.AccessibilityNodeInfo;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.RequiresApi;
 import androidx.annotation.WorkerThread;
 
-import com.auto.assist.accessibility.selector.ActionSelector;
-import com.auto.assist.accessibility.selector.ClickDescNode;
-import com.auto.assist.accessibility.selector.ClickIdNode;
-import com.auto.assist.accessibility.selector.ClickNode;
-import com.auto.assist.accessibility.selector.ClickTextNode;
 import com.auto.assist.accessibility.selector.ConditionNode;
-import com.auto.assist.accessibility.selector.NodeSelector;
-import com.auto.assist.accessibility.util.ApiUtil;
 import com.auto.assist.accessibility.util.LogUtil;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 上层api
+ * 上层API，配合 SDK/tools/bin/uiautomatorviewer.bat 进行节点分析
  */
 public class UiApi {
 
@@ -38,39 +39,64 @@ public class UiApi {
     }
 
     /**
-     * 判断是否是当前页面
+     * 判断指定的应用的辅助功能是否开启,
+     *
+     * @param context 上下文
+     * @param
+     * @return 是否开启
      */
-    public static boolean isMyNeedPage(String selecor) {
-        NodeSelector selector = NodeSelector.fromJson(selecor);
-        return isMyNeedPage(selector);
+    public static boolean isAccessibilityServiceOn(@NonNull Context context, Class cls) {
+        int ok = 0;
+        String serName = context.getPackageName() + "/" + cls.getCanonicalName();
+
+        try {
+            ok = Settings.Secure.getInt(context.getApplicationContext().getContentResolver(), Settings.Secure.ACCESSIBILITY_ENABLED);
+        } catch (Settings.SettingNotFoundException e) {
+        }
+
+        TextUtils.SimpleStringSplitter ms = new TextUtils.SimpleStringSplitter(':');
+        if (ok == 1) {
+            String settingValue = Settings.Secure.getString(context.getApplicationContext().getContentResolver(), Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
+            if (settingValue != null) {
+                ms.setString(settingValue);
+                while (ms.hasNext()) {
+                    String accessibilityService = ms.next();
+                    if (accessibilityService.equalsIgnoreCase(serName)) {
+                        return true;
+                    }
+
+                }
+            }
+        }
+
+        return false;
     }
 
+
     /**
-     * 前往某个界面
+     * 触发系统rebind通知监听服务
      *
-     * @param selecors 选择器内容数组
-     * @return
+     * @param context      上下文
+     * @param serviceClass 辅助功能服务的类
      */
-    public static boolean jumpToNeedPage(String[] selecors) {
-        if (selecors == null) {
-            return false;
-        }
-        List<ActionSelector> lists = new ArrayList<>();
-        for (String item : selecors) {
-            ActionSelector payPage = ActionSelector.fromJson(item);
-            if (payPage == null) {
-                LogUtil.error("选择器字符串无法格式成功");
-                return false;
-            }
-            lists.add(payPage);
-        }
-        return jumpToNeedPage(lists);
+    public static void rebindAccessibilityService(Context context, Class serviceClass) {
+        PackageManager pm = context.getPackageManager();
+        pm.setComponentEnabledSetting(
+                new ComponentName(context, serviceClass),
+                PackageManager.COMPONENT_ENABLED_STATE_DISABLED,
+                PackageManager.DONT_KILL_APP
+        );
+        pm.setComponentEnabledSetting(
+                new ComponentName(context, serviceClass),
+                PackageManager.COMPONENT_ENABLED_STATE_ENABLED,
+                PackageManager.DONT_KILL_APP
+        );
     }
 
     /**
      * 回到home页
      */
-    public static void backHome() {
+    public static void home() {
         AcessibilityApi.performAction(AcessibilityApi.ActionType.HOME);
     }
 
@@ -79,6 +105,41 @@ public class UiApi {
      */
     public static void back() {
         AcessibilityApi.performAction(AcessibilityApi.ActionType.BACK);
+    }
+
+    public static void notifications() {
+        AcessibilityApi.performAction(AcessibilityApi.ActionType.NOTIFICATIONS);
+    }
+
+    public static void scrollBackward() {
+        AcessibilityApi.performAction(AcessibilityApi.ActionType.SCROLL_BACKWARD);
+    }
+
+    public static void scrollForward() {
+        AcessibilityApi.performAction(AcessibilityApi.ActionType.SCROLL_FORWARD);
+    }
+
+    /**
+     * 模拟手指触摸点击事件
+     *
+     * @param x           横坐标
+     * @param y           纵坐标
+     * @param millisecond 点击时间间隔
+     * @return
+     */
+    @RequiresApi(api = Build.VERSION_CODES.N)
+    public static void performGestureClick(AccessibilityService service, float x, float y, int millisecond) {
+        Path p = new Path();
+        p.moveTo(x, y);
+        GestureDescription.Builder builder = new GestureDescription.Builder();
+        builder.addStroke(new GestureDescription.StrokeDescription(p, 0, millisecond));
+        GestureDescription gesture = builder.build();
+        service.dispatchGesture(gesture, new AccessibilityService.GestureResultCallback() {
+            @Override
+            public void onCompleted(GestureDescription gestureDescription) {
+                super.onCompleted(gestureDescription);
+            }
+        }, null);
     }
 
     /**
@@ -103,12 +164,13 @@ public class UiApi {
             } else {
                 curUtcMsc = System.currentTimeMillis();
                 if ((curUtcMsc - beginUtcMsc) < maxMills) {
-                    ApiUtil.sleepTime(CHECK_UI_SLEEP_GAP_MSEC);
+                    sleepTime(CHECK_UI_SLEEP_GAP_MSEC);
                 } else {
                     break;
                 }
             }
         }
+        LogUtil.debug("按 TEXT(" + text + ") 查找节点： " + mNode);
         return mNode;
     }
 
@@ -135,12 +197,13 @@ public class UiApi {
             } else {
                 curUtcMsc = System.currentTimeMillis();
                 if ((curUtcMsc - beginUtcMsc) < maxMills) {
-                    ApiUtil.sleepTime(CHECK_UI_SLEEP_GAP_MSEC);
+                    sleepTime(CHECK_UI_SLEEP_GAP_MSEC);
                 } else {
                     break;
                 }
             }
         }
+        LogUtil.debug("按 ID(" + id + ") 查找节点： " + mNode);
         return mNode;
     }
 
@@ -152,7 +215,7 @@ public class UiApi {
      * @return 节点对象
      */
     @WorkerThread
-    public static AccessibilityNodeInfo findNodeByDesWithTimeOut(long maxMills, String desc) {
+    public static AccessibilityNodeInfo findNodeByDescWithTimeOut(long maxMills, String desc) {
         AccessibilityNodeInfo mNode;
         long beginUtcMsc = System.currentTimeMillis(); //记录当前开始时间
         long curUtcMsc; //当前时间
@@ -166,12 +229,13 @@ public class UiApi {
             } else {
                 curUtcMsc = System.currentTimeMillis();
                 if ((curUtcMsc - beginUtcMsc) < maxMills) {
-                    ApiUtil.sleepTime(CHECK_UI_SLEEP_GAP_MSEC);
+                    sleepTime(CHECK_UI_SLEEP_GAP_MSEC);
                 } else {
                     break;
                 }
             }
         }
+        LogUtil.debug("按 DESC(" + desc + ") 查找节点： " + mNode);
         return mNode;
     }
 
@@ -199,12 +263,39 @@ public class UiApi {
             } else {
                 curUtcMsc = System.currentTimeMillis();
                 if ((curUtcMsc - beginUtcMsc) < maxMills) {
-                    ApiUtil.sleepTime(CHECK_UI_SLEEP_GAP_MSEC);
+                    sleepTime(CHECK_UI_SLEEP_GAP_MSEC);
                 } else {
                     break;
                 }
             }
         }
+        LogUtil.debug("按 CLASS(" + cls + ") 查找节点： " + mNode);
+        return mNode;
+    }
+
+    @WorkerThread
+    public static AccessibilityNodeInfo findNodeByActionWithTimeOut(long maxMills, AccessibilityNodeInfo.AccessibilityAction action) {
+        AccessibilityNodeInfo mNode = null;
+        long beginUtcMsc = System.currentTimeMillis(); //记录当前开始时间
+        long curUtcMsc; //当前时间
+        if (maxMills == 0 || maxMills < 0) {
+            maxMills = WAIT_UI_APPEAR_MSEC;
+        }
+        while (true) {
+            List<AccessibilityNodeInfo> lists = AcessibilityApi.findViewByAction(action);
+            if (lists != null && lists.size() != 0) {
+                mNode = lists.get(0);
+                break;
+            } else {
+                curUtcMsc = System.currentTimeMillis();
+                if ((curUtcMsc - beginUtcMsc) < maxMills) {
+                    sleepTime(CHECK_UI_SLEEP_GAP_MSEC);
+                } else {
+                    break;
+                }
+            }
+        }
+        LogUtil.debug("按 ACTION(" + action + ") 查找节点： " + mNode);
         return mNode;
     }
 
@@ -260,7 +351,7 @@ public class UiApi {
             } else {
                 curUtcMsc = System.currentTimeMillis();
                 if ((curUtcMsc - beginUtcMsc) < maxMills) {
-                    ApiUtil.sleepTime(500);
+                    sleepTime(500);
                     LogUtil.debug("尝试失败,再次尝试点击");
                 } else {
                     break;
@@ -296,7 +387,7 @@ public class UiApi {
             } else {
                 curUtcMsc = System.currentTimeMillis();
                 if ((curUtcMsc - beginUtcMsc) < maxMills) {
-                    ApiUtil.sleepTime(500);
+                    sleepTime(500);
                     LogUtil.debug("尝试失败,再次尝试点击");
                 } else {
                     break;
@@ -314,7 +405,7 @@ public class UiApi {
     @WorkerThread
     public static boolean clickNodeByDesWithTimeOut(long maxMills, String id) {
         boolean isClick;
-        AccessibilityNodeInfo node = findNodeByDesWithTimeOut(maxMills, id);
+        AccessibilityNodeInfo node = findNodeByDescWithTimeOut(maxMills, id);
         if (node == null) {
             return false;
         }
@@ -330,7 +421,7 @@ public class UiApi {
             } else {
                 curUtcMsc = System.currentTimeMillis();
                 if ((curUtcMsc - beginUtcMsc) < maxMills) {
-                    ApiUtil.sleepTime(500);
+                    sleepTime(500);
                     LogUtil.debug("尝试失败,再次尝试点击");
                 } else {
                     break;
@@ -363,7 +454,7 @@ public class UiApi {
             } else {
                 curUtcMsc = System.currentTimeMillis();
                 if ((curUtcMsc - beginUtcMsc) < maxMills) {
-                    ApiUtil.sleepTime(500);
+                    sleepTime(500);
                     LogUtil.debug("尝试失败,再次尝试点击");
                 } else {
                     break;
@@ -386,7 +477,7 @@ public class UiApi {
             List<String> desc = conditionNode.getDesc();
             if (desc != null && desc.size() > 0) {
                 for (String vl : desc) {
-                    nodeInfo = findNodeByDesWithTimeOut(maxMustMills, vl);
+                    nodeInfo = findNodeByDescWithTimeOut(maxMustMills, vl);
                     if (!isExists(nodeInfo)) {
                         LogUtil.debug("模糊查找 DESC节点[" + vl + "]查找失败");
                     } else {
@@ -439,6 +530,30 @@ public class UiApi {
         return false;
     }
 
+    public static boolean findNodeByDescAndInput(long maxMils, String text, String inputStr) {
+        AccessibilityNodeInfo node = findNodeByDescWithTimeOut(maxMils, text);
+        if (node != null) {
+            return AcessibilityApi.inputTextByNode(node, inputStr);
+        }
+        return false;
+    }
+
+    public static boolean findEditTextByClsAndInput(long maxMils, String inputStr) {
+        AccessibilityNodeInfo node = findNodeByClsWithTimeOut(maxMils, "android.widget.EditText");
+        if (node != null) {
+            return AcessibilityApi.inputTextByNode(node, inputStr);
+        }
+        return false;
+    }
+
+    public static boolean findEditTextByActionAndInput(long maxMils, String inputStr) {
+        AccessibilityNodeInfo node = findNodeByActionWithTimeOut(maxMils, AccessibilityNodeInfo.AccessibilityAction.ACTION_SET_TEXT);
+        if (node != null) {
+            return AcessibilityApi.inputTextByNode(node, inputStr);
+        }
+        return false;
+    }
+
     /**
      * 通过text查找输入控件,然后输入
      *
@@ -455,148 +570,16 @@ public class UiApi {
         return false;
     }
 
-
-    /**
-     * 判断是否是当前页面
-     */
-    public static boolean isMyNeedPage(NodeSelector nodeSelecor) {
-        boolean isPage;
-        if (nodeSelecor == null) {
-            return false;
-        }
-        long maxMustMills = nodeSelecor.getMaxMustMills();
-        long maxOptionMills = nodeSelecor.getMaxOptionMills();
-        //---must 只有有一个失败,就失败
-        boolean mustTag = true;
-        ConditionNode must = nodeSelecor.getOption();
-        if (must != null) {
-            List<String> desc = must.getDesc();
-            if (desc != null && desc.size() > 0) {
-                for (String vl : desc) {
-                    mustTag = isExists(findNodeByDesWithTimeOut(maxMustMills, vl));
-                    if (!mustTag) {
-                        LogUtil.debug("must DESC节点[" + vl + "]查找失败");
-                        return false;
-                    } else {
-                        LogUtil.debug("must DESC节点[" + vl + "]查找成功");
-                    }
-                }
-            }
-            List<String> text = must.getText();
-            if (text != null && text.size() > 0) {
-                for (String vl : text) {
-                    mustTag = isExists(findNodeByTextWithTimeOut(maxMustMills, vl));
-                    if (!mustTag) {
-                        LogUtil.debug("must TEXT节点[" + vl + "]查找失败");
-                        return false;
-                    } else {
-                        LogUtil.debug("must TEXT节点[" + vl + "]查找成功");
-                    }
-                }
-            }
-            List<String> id = must.getId();
-            if (id != null && id.size() > 0) {
-                for (String vl : id) {
-                    mustTag = isExists(findNodeByIdWithTimeOut(maxMustMills, vl));
-                    if (!mustTag) {
-                        LogUtil.debug("must ID节点[" + vl + "]查找失败");
-                        return false;
-                    } else {
-                        LogUtil.debug("must ID节点[" + vl + "]查找成功");
-                    }
-                }
-            }
-        }
-        //---option,只要有一个成功,就成功
-        boolean optTag = true;
-        ConditionNode option = nodeSelecor.getOption();
-        if (option != null) {
-            List<String> desc = option.getDesc();
-            if (desc != null && desc.size() > 0) {
-                for (String vl : desc) {
-                    mustTag = isExists(findNodeByDesWithTimeOut(maxMustMills, vl));
-                    if (mustTag) {
-                        LogUtil.debug("option DESC节点[" + vl + "]查找成功");
-                        return true;
-                    } else {
-                        LogUtil.debug("option DESC节点[" + vl + "]查找失败");
-
-                    }
-                }
-            }
-            List<String> text = option.getText();
-            if (text != null && text.size() > 0) {
-                for (String vl : text) {
-                    optTag = isExists(findNodeByTextWithTimeOut(maxOptionMills, vl));
-                    if (optTag) {
-                        LogUtil.debug("option TEXT节点[" + vl + "]查找成功");
-                        return true;
-                    } else {
-                        LogUtil.debug("option TEXT节点[" + vl + "]查找失败");
-                    }
-                }
-            }
-            List<String> id = option.getId();
-            if (id != null && id.size() > 0) {
-                for (String vl : id) {
-                    optTag = isExists(findNodeByIdWithTimeOut(maxOptionMills, vl));
-                    if (optTag) {
-                        LogUtil.debug("option ID节点[" + vl + "]查找成功");
-                        return true;
-                    } else {
-                        LogUtil.debug("option ID节点[" + vl + "]查找失败");
-                    }
-                }
-            }
-        }
-        isPage = (mustTag && optTag);
-        return isPage;
-    }
-
-    public static boolean jumpToNeedPage(ActionSelector actionSelector) {
-        List<ActionSelector> lists = new ArrayList<>();
-        lists.add(actionSelector);
-        return jumpToNeedPage(lists);
-    }
-
-    /**
-     * 前往预期页面,可以串联多个页面路径
-     *
-     * @param lists 条件
-     */
-    public static boolean jumpToNeedPage(List<ActionSelector> lists) {
-        boolean isJump = false;
-        if (lists == null || lists.size() == 0) {
-            return false;
-        }
-        for (ActionSelector item : lists) {
-            long maxClickMills = item.getMaxWClickMSec();
-            NodeSelector page = item.getPage();
-            ClickNode clickNode = item.getClick();
-            if (page != null && clickNode != null && maxClickMills != 0) {
-                if (isMyNeedPage(page)) {
-                    if (clickNode instanceof ClickTextNode) {
-                        isJump = clickNodeByTextWithTimeOut(maxClickMills, ((ClickTextNode) clickNode).getText());
-                    } else if (clickNode instanceof ClickIdNode) {
-                        isJump = clickNodeByIdWithTimeOut(maxClickMills, ((ClickIdNode) clickNode).getId());
-                    } else if (clickNode instanceof ClickDescNode) {
-                        isJump = clickNodeByDesWithTimeOut(maxClickMills, ((ClickDescNode) clickNode).getDesc());
-                    }
-                    if (!isJump) {
-                        LogUtil.error("未找到节点:" + clickNode);
-                        return false;
-                    }
-                } else {
-                    LogUtil.error("不在预期页面:" + page);
-                    return false;
-                }
-            }
-        }
-        return isJump;
-    }
-
     private static boolean isExists(AccessibilityNodeInfo nodeInfo) {
         return nodeInfo != null;
+    }
+
+    public static void sleepTime(long t) {
+        try {
+            Thread.sleep(t);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
 }

@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">accessibilityDemo</string>
+    <string name="description">accessibility demo</string>
 </resources>
