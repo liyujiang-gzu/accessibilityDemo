@@ -222,7 +222,7 @@ public class AcessibilityApi {
      * @param text text
      * @return View
      */
-    public static AccessibilityNodeInfo findViewByText(String text) {
+    public static AccessibilityNodeInfo findNodeByText(String text) {
         AccessibilityNodeInfo accessibilityNodeInfo = getRootNode();
         if (accessibilityNodeInfo == null) {
             return null;
