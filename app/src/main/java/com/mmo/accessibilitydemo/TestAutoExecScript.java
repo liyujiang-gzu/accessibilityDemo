@@ -6,7 +6,6 @@ import androidx.annotation.WorkerThread;
 
 import com.auto.assist.accessibility.api.AcessibilityApi;
 import com.auto.assist.accessibility.api.UiApi;
-import com.auto.assist.accessibility.util.LogUtil;
 
 /**
  * 辅助功能自动化执行脚本
@@ -30,7 +29,8 @@ public class TestAutoExecScript {
 
     @WorkerThread
     private static void doAction() {
-        if (!UiApi.clickNodeByDesWithTimeOut(5000, "搜索")) {
+        //UiApi.clickNodeByIdWithTimeOut(5000, "com.tencent.mm:id/baj");
+        if (!UiApi.clickNodeByDescWithTimeOut(5000, "搜索")) {
             return;
         }
         if (UiApi.findNodeByTextWithTimeOut(3000, "搜索指定内容") == null) {
@@ -38,9 +38,7 @@ public class TestAutoExecScript {
         }
         AcessibilityApi.closeKeyBoard();
         UiApi.sleepTime(500);
-        if (UiApi.findEditTextByActionAndInput(5000, "穿青人")) {
-            LogUtil.debug("搜索成功");
-        }
+        UiApi.findEditTextByActionAndInput(5000, "穿青人");
     }
 
 }

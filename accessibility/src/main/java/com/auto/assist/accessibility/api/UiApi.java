@@ -20,6 +20,7 @@ import com.auto.assist.accessibility.selector.ConditionNode;
 import com.auto.assist.accessibility.util.LogUtil;
 
 import java.util.List;
+import java.util.Locale;
 
 /**
  * 上层API，配合 SDK/tools/bin/uiautomatorviewer.bat 进行节点分析
@@ -28,6 +29,10 @@ public class UiApi {
 
     private static final int WAIT_UI_APPEAR_MSEC = 500;  //控件默认的超时时间,毫秒
     private static final int CHECK_UI_SLEEP_GAP_MSEC = 200;  //控件默认的超时时间,毫秒
+
+    public static boolean isChinese() {
+        return "zh".equals(Locale.getDefault().getLanguage());
+    }
 
     /**
      * 前往开启辅助服务界面
@@ -158,8 +163,8 @@ public class UiApi {
             maxMills = WAIT_UI_APPEAR_MSEC;
         }
         while (true) {
-            mNode = AcessibilityApi.findViewByText(text);
-            if (isExists(mNode)) {
+            mNode = AcessibilityApi.findNodeByText(text);
+            if (mNode != null) {
                 break;
             } else {
                 curUtcMsc = System.currentTimeMillis();
@@ -191,8 +196,8 @@ public class UiApi {
             maxMills = WAIT_UI_APPEAR_MSEC;
         }
         while (true) {
-            mNode = AcessibilityApi.findViewByID(id);
-            if (isExists(mNode)) {
+            mNode = AcessibilityApi.findNodeByID(id);
+            if (mNode != null) {
                 break;
             } else {
                 curUtcMsc = System.currentTimeMillis();
@@ -223,8 +228,8 @@ public class UiApi {
             maxMills = WAIT_UI_APPEAR_MSEC;
         }
         while (true) {
-            mNode = AcessibilityApi.findViewByDesc(desc);
-            if (isExists(mNode)) {
+            mNode = AcessibilityApi.findNodeByDesc(desc);
+            if (mNode != null) {
                 break;
             } else {
                 curUtcMsc = System.currentTimeMillis();
@@ -256,7 +261,7 @@ public class UiApi {
             maxMills = WAIT_UI_APPEAR_MSEC;
         }
         while (true) {
-            List<AccessibilityNodeInfo> lists = AcessibilityApi.findViewByCls(cls);
+            List<AccessibilityNodeInfo> lists = AcessibilityApi.findNodesByClass(cls);
             if (lists != null && lists.size() != 0) {
                 mNode = lists.get(0);
                 break;
@@ -282,7 +287,7 @@ public class UiApi {
             maxMills = WAIT_UI_APPEAR_MSEC;
         }
         while (true) {
-            List<AccessibilityNodeInfo> lists = AcessibilityApi.findViewByAction(action);
+            List<AccessibilityNodeInfo> lists = AcessibilityApi.findNodesByAction(action);
             if (lists != null && lists.size() != 0) {
                 mNode = lists.get(0);
                 break;
@@ -403,7 +408,7 @@ public class UiApi {
      * @return
      */
     @WorkerThread
-    public static boolean clickNodeByDesWithTimeOut(long maxMills, String id) {
+    public static boolean clickNodeByDescWithTimeOut(long maxMills, String id) {
         boolean isClick;
         AccessibilityNodeInfo node = findNodeByDescWithTimeOut(maxMills, id);
         if (node == null) {
@@ -478,7 +483,7 @@ public class UiApi {
             if (desc != null && desc.size() > 0) {
                 for (String vl : desc) {
                     nodeInfo = findNodeByDescWithTimeOut(maxMustMills, vl);
-                    if (!isExists(nodeInfo)) {
+                    if (nodeInfo == null) {
                         LogUtil.debug("模糊查找 DESC节点[" + vl + "]查找失败");
                     } else {
                         LogUtil.debug("模糊查找 DESC节点[" + vl + "]查找成功");
@@ -490,7 +495,7 @@ public class UiApi {
             if (text != null && text.size() > 0) {
                 for (String vl : text) {
                     nodeInfo = findNodeByTextWithTimeOut(maxMustMills, vl);
-                    if (!isExists(nodeInfo)) {
+                    if (nodeInfo == null) {
                         LogUtil.debug("模糊查找 TEXT节点[" + vl + "]查找失败");
                     } else {
                         LogUtil.debug("模糊查找 TEXT节点[" + vl + "]查找成功");
@@ -502,7 +507,7 @@ public class UiApi {
             if (id != null && id.size() > 0) {
                 for (String vl : id) {
                     nodeInfo = findNodeByIdWithTimeOut(maxMustMills, vl);
-                    if (!isExists(nodeInfo)) {
+                    if (nodeInfo == null) {
                         LogUtil.debug("模糊查找 ID节点[" + vl + "]查找失败");
                     } else {
                         LogUtil.debug("模糊查找 ID节点[" + vl + "]查找成功");
@@ -568,10 +573,6 @@ public class UiApi {
             return AcessibilityApi.inputTextByNode(node, inputStr);
         }
         return false;
-    }
-
-    private static boolean isExists(AccessibilityNodeInfo nodeInfo) {
-        return nodeInfo != null;
     }
 
     public static void sleepTime(long t) {
